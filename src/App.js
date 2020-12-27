@@ -307,6 +307,12 @@ function App() {
   return (
     <Page size="large">
       <Text h2>On Chain Activity - ESD</Text>
+      <Text type="secondary">
+        Made by{" "}
+        <Link color href="https://twitter.com/kendricktrh">
+          @kendrictrh
+        </Link>
+      </Text>
       <Spacer y={1} />
       <Tabs initialValue="1">
         <Tabs.Item label="DAO" value="1">
