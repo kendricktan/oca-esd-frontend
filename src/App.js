@@ -310,7 +310,7 @@ function App() {
       <Text type="secondary">
         Made by{" "}
         <Link color href="https://twitter.com/kendricktrh">
-          @kendrictrh
+          @kendricktrh
         </Link>
       </Text>
       <Spacer y={1} />
