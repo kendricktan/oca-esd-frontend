@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import {
   Page,
@@ -15,7 +16,7 @@ import { ethers } from "ethers";
 const provider = new ethers.providers.CloudflareProvider(1);
 
 const DAO_ADDRESS = "0x443d2f2755db5942601fa062cc248aaa153313d3";
-const LP_ADDRESS = '0x4082D11E506e3250009A991061ACd2176077C88f'
+const LP_ADDRESS = "0x4082D11E506e3250009A991061ACd2176077C88f";
 
 const Dao = new ethers.Contract(
   DAO_ADDRESS,
@@ -201,10 +202,7 @@ function App() {
           {lpTreeValue && (
             <>
               <Note label={false}>
-                <Link
-                  color
-                  href={`https://etherscan.io/address/${LP_ADDRESS}`}
-                >
+                <Link color href={`https://etherscan.io/address/${LP_ADDRESS}`}>
                   DAO Address
                 </Link>
                 &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; Epoch: {epoch}
