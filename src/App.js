@@ -12,6 +12,7 @@ import {
   Note,
 } from "@geist-ui/react";
 import { ethers } from "ethers";
+import { formatEther, parseEther } from "ethers/lib/utils";
 
 const provider = new ethers.providers.CloudflareProvider(1);
 
@@ -114,10 +115,152 @@ const formatDaoStats = (daoStats, epoch) => {
     ];
   }
 
-  return [{ type: "directory", name: "Fluid", files: treeData }];
+  return [{ type: "directory", name: "Staged (Fluid)", files: treeData }];
 };
 
-const formatLpStats = (lpStats, epoch) => {};
+const formatLpStats = (lpStats, epoch) => {
+  const { esdPerUniV2 } = lpStats;
+  const esdPerUniV2BN = parseEther(esdPerUniV2);
+
+  const accounts = Object.keys(lpStats.accounts);
+
+  const accountsPostEpoch = accounts
+    .map((x) => {
+      return { ...lpStats.accounts[x], user: x };
+    })
+    .map((x) => {
+      return { ...x, fluidUntil: parseInt(x["fluidUntil"]) };
+    })
+    .filter((x) => x["fluidUntil"] > epoch);
+
+  let epochsRaw = {};
+  let epochsFluid = {};
+  let epochsClaimable = {};
+  let treeFluid = [];
+  let treeClaimable = [];
+
+  for (const acc of accountsPostEpoch) {
+    const { user, staged, claimable, fluidUntil } = acc;
+
+    if (ethers.BigNumber.from(staged).gt(ethers.constants.Zero)) {
+      epochsRaw[fluidUntil] = [...(epochsRaw[fluidUntil] || []), acc];
+
+      // Convert from LP tokens to ESD
+      const stagedFixed = esdPerUniV2BN
+        .mul(ethers.BigNumber.from(staged))
+        .div(parseEther("1"));
+
+      epochsFluid[fluidUntil] = [
+        ...(epochsFluid[fluidUntil] || []),
+        {
+          type: "file",
+          name: (
+            <Link color href={`https://etherscan.io/address/${user}`}>
+              {user}
+            </Link>
+          ),
+          extra: `${prettyStr18(stagedFixed.toString())} Staged`,
+          value: stagedFixed.toString(),
+          valueBN: stagedFixed,
+        },
+      ];
+
+      epochsClaimable[fluidUntil] = [
+        ...(epochsClaimable[fluidUntil] || []),
+        {
+          type: "file",
+          name: (
+            <Link color href={`https://etherscan.io/address/${user}`}>
+              {user}
+            </Link>
+          ),
+          extra: `${prettyStr18(claimable)} Staged`,
+          value: claimable,
+          valueBN: ethers.BigNumber.from(claimable),
+        },
+      ];
+    }
+  }
+
+  for (const e of Object.keys(epochsFluid)) {
+    // Sort by value
+    const curEpochDataSorted = epochsFluid[e].sort((a, b) =>
+      a.valueBN.gt(b.valueBN) ? -1 : b.valueBN.gt(a.valueBN) ? 1 : 0
+    );
+
+    // Sum of all value
+    const totalValue = curEpochDataSorted.reduce((acc, x) => {
+      return acc + str18ToFloat(x.value);
+    }, 0);
+
+    // Percentage
+    const curEpochDataSortedAndPercentage = curEpochDataSorted.map((x) => {
+      const curVal = str18ToFloat(x.value);
+
+      return {
+        ...x,
+        extra: `${prettyStr18(x.value)} ESD (${(
+          (curVal / totalValue) *
+          100
+        ).toFixed(2)} %)`,
+      };
+    });
+
+    treeFluid = [
+      ...treeFluid,
+      {
+        type: "directory",
+        name: `${e}`,
+        extra: `${prettyNumbers(totalValue.toFixed(2))} ESD (${
+          curEpochDataSortedAndPercentage.length
+        })`,
+        files: curEpochDataSortedAndPercentage,
+      },
+    ];
+  }
+
+  for (const e of Object.keys(epochsClaimable)) {
+    // Sort by value
+    const curEpochDataSorted = epochsClaimable[e].sort((a, b) =>
+      a.valueBN.gt(b.valueBN) ? -1 : b.valueBN.gt(a.valueBN) ? 1 : 0
+    );
+
+    // Sum of all value
+    const totalValue = curEpochDataSorted.reduce((acc, x) => {
+      return acc + str18ToFloat(x.value);
+    }, 0);
+
+    // Percentage
+    const curEpochDataSortedAndPercentage = curEpochDataSorted.map((x) => {
+      const curVal = str18ToFloat(x.value);
+
+      return {
+        ...x,
+        extra: `${prettyStr18(x.value)} ESD (${(
+          (curVal / totalValue) *
+          100
+        ).toFixed(2)} %)`,
+      };
+    });
+
+    treeClaimable = [
+      ...treeClaimable,
+      {
+        type: "directory",
+        name: `${e}`,
+        extra: `${prettyNumbers(totalValue.toFixed(2))} ESD (${
+          curEpochDataSortedAndPercentage.length
+        })`,
+        files: curEpochDataSortedAndPercentage,
+      },
+    ];
+  }
+
+  return [
+    { type: "directory", name: "Staged (Fluid)", files: treeFluid },
+    { type: "directory", name: "Staged (Claimable)", files: treeClaimable },
+  ];
+};
 
 function App() {
   const [daoStats, setDaoStats] = useState(null);
@@ -136,7 +279,7 @@ function App() {
       if (epoch) {
         if (!daoStats) {
           const daoData = await fetch(
-            "//api-esd.oca.wtf/data/ESD-DAO.json"
+            "https://api-esd.oca.wtf/data/ESD-DAO.json"
           ).then((x) => x.json());
 
           const daoTreeDataFormatted = formatDaoStats(daoData, epoch);
@@ -147,10 +290,13 @@ function App() {
 
         if (!lpStats) {
           const lpData = await fetch(
-            "//api-esd.oca.wtf/data/ESD-LP.json"
+            "https://api-esd.oca.wtf/data/ESD-LP.json"
           ).then((x) => x.json());
 
+          const lpTreeDataFormatted = formatLpStats(lpData, epoch);
+
           setLpStats(lpData);
+          setLpTreeValue(lpTreeDataFormatted);
         }
       }
     };
@@ -203,7 +349,7 @@ function App() {
             <>
               <Note label={false}>
                 <Link color href={`https://etherscan.io/address/${LP_ADDRESS}`}>
-                  DAO Address
+                  LP Address
                 </Link>
                 &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; Epoch: {epoch}
                 &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;Last updated
