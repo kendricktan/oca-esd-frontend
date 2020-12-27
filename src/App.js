@@ -136,7 +136,7 @@ function App() {
       if (epoch) {
         if (!daoStats) {
           const daoData = await fetch(
-            "http://18.222.230.181/data/ESD-DAO.json"
+            "//api-esd.oca.wtf/data/ESD-DAO.json"
           ).then((x) => x.json());
 
           const daoTreeDataFormatted = formatDaoStats(daoData, epoch);
@@ -147,7 +147,7 @@ function App() {
 
         if (!lpStats) {
           const lpData = await fetch(
-            "http://18.222.230.181/data/ESD-LP.json"
+            "//api-esd.oca.wtf/data/ESD-LP.json"
           ).then((x) => x.json());
 
           setLpStats(lpData);
