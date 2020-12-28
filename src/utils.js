@@ -32,8 +32,17 @@ export const formatDaoStats = (daoStats, epoch) => {
   let treeData = [];
   let barData = [];
 
+  // Addresses can be case-insensitive based on provider...
+  let seenAddresses = {};
+
   for (const acc of accountsPostEpoch) {
     const { user, staged, fluidUntil } = acc;
+
+    // Hacked on filter
+    if (user.toLowerCase() in seenAddresses) {
+      continue;
+    }
+    seenAddresses[user.toLowerCase()] = true;
 
     if (ethers.BigNumber.from(staged).gt(ethers.constants.Zero)) {
       epochsDataRaw[fluidUntil] = [...(epochsDataRaw[fluidUntil] || []), acc];
@@ -129,8 +138,16 @@ export const formatLpStats = (lpStats, epoch) => {
   let treeClaimable = [];
   let barData = {};
 
+  let seenAddresses = {};
+
   for (const acc of accountsPostEpoch) {
     const { user, staged, claimable, fluidUntil } = acc;
+
+    // Hacked on filter
+    if (user.toLowerCase() in seenAddresses) {
+      continue;
+    }
+    seenAddresses[user.toLowerCase()] = true;
 
     if (ethers.BigNumber.from(staged).gt(ethers.constants.Zero)) {
       epochsRaw[fluidUntil] = [...(epochsRaw[fluidUntil] || []), acc];
