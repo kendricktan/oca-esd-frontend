@@ -59,7 +59,7 @@ function App() {
             "https://api-esd.oca.wtf/data/ESD-DAO.json"
           ).then((x) => x.json());
 
-          const { tree, bar } = formatDaoStats(daoData, epoch);
+          const { tree, bar } = formatDaoStats(daoData, epoch - 3);
 
           setDaoStats(daoData);
           setDaoChartData(bar);
@@ -71,7 +71,7 @@ function App() {
             "https://api-esd.oca.wtf/data/ESD-LP.json"
           ).then((x) => x.json());
 
-          const { tree, bar } = formatLpStats(lpData, epoch);
+          const { tree, bar } = formatLpStats(lpData, epoch - 3);
 
           setLpStats(lpData);
           setLpTreeValue(tree);
