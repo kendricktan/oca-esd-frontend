@@ -15,6 +15,76 @@ export const str18ToFloat = (str) => {
   return parseFloat(ethers.utils.formatEther(ethers.BigNumber.from(str)));
 };
 
+export const formatCouponPurchasesStats = (couponStats, epoch) => {
+  const COUPON_EXPIRATION_EPOCH = 90;
+
+  const validEpochs = Object.keys(couponStats.coupons)
+    .sort()
+    .filter((x) => parseInt(x) + COUPON_EXPIRATION_EPOCH >= epoch);
+
+  let epochsData = {};
+  let lineData = [];
+
+  for (const e of validEpochs) {
+    const couponsPurchasedAtEpoch = couponStats.coupons[e]
+      .map((x) => {
+        return {
+          ...x,
+          amount: str18ToFloat(x.amount),
+        };
+      })
+      .sort((a, b) => b.amount - a.amount);
+
+    const totalValue = couponsPurchasedAtEpoch.reduce(
+      (acc, x) => acc + x.amount,
+      0
+    );
+
+    epochsData[e] = couponsPurchasedAtEpoch.map(
+      ({ amount, address, txHash }) => {
+        return {
+          type: "file",
+          name: (
+            <Link color href={`https://etherscan.io/tx/${txHash}`}>
+              {address}
+            </Link>
+          ),
+          extra: `${new Intl.NumberFormat("en").format(amount)} Coupons (${(
+            (amount / totalValue) *
+            100
+          ).toFixed(2)}%)`,
+        };
+      }
+    );
+
+    lineData = [
+      ...lineData,
+      {
+        epoch: parseInt(e),
+        value: totalValue,
+      },
+    ];
+  }
+
+  return {
+    tree: [
+      {
+        type: "directory",
+        name: "Coupons (Purchased)",
+        files: Object.keys(epochsData).map((e) => {
+          return {
+            type: "directory",
+            name: `${e}`,
+            extra: `${epochsData[e].length}`,
+            files: epochsData[e],
+          };
+        }),
+      },
+    ],
+    line: lineData,
+  };
+};
+
 export const formatDaoStats = (daoStats, epoch) => {
   const accounts = Object.keys(daoStats.accounts);
 
